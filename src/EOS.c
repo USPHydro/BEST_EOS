@@ -333,6 +333,7 @@ void do_lattice() /*{{{*/
 	FILE *FileEnerDensLATonlyNorm = fopen("EnerDens.dat", "w");
 	FILE *FileSpSoundLATonlyNorm = fopen("Cs2.dat", "w");	
 	FILE *FileChi2LATonlyNorm = fopen("Chi2.dat", "w");
+	FILE *FileCorrLengthLATonlyNorm = fopen("CorrLength.dat", "w");
 		
 	// Export.
 	for (i=lowT_out; i<=highT_out; i++) for(j=0;j<=highMU_out; j++){
@@ -368,6 +369,8 @@ void do_lattice() /*{{{*/
 			muBval, Tval, SpSoundLATonlyNormMat[i][j]);
 		fprintf(FileChi2LATonlyNorm,"%3.16f	%3.1f	%12.16f \n", 
 			muBval, Tval, Chi2LATonlyNormMat[i][j]);
+		fprintf(FileCorrLengthLATonlyNorm,"%3.16f	%3.1f	%12.16f \n", 
+			muBval, Tval, CorrLengthMergedMat[i][j]);
   	}
 	// Close the files.
 	fclose(FilePressLATonlyNorm);		
@@ -376,6 +379,7 @@ void do_lattice() /*{{{*/
 	fclose(FileEnerDensLATonlyNorm);		
 	fclose(FileSpSoundLATonlyNorm);		
 	fclose(FileChi2LATonlyNorm);	
+	fclose(FileCorrLengthLATonlyNorm );	
 
 	fprintf(stderr,"The procedure is completed. Exiting.\n");
 } /*}}}*/

@@ -26,33 +26,20 @@ filename_string = EOS_table_folder.split("Files_")[1].split("/")[0].split("_SN")
 print(filename_string)
 
 
-ed_table = loadtxt(path.join(EOS_table_folder,
-                             "EnerDens_Final_%s_3D.dat" % filename_string))    # e/T^4
-nB_table = loadtxt(path.join(EOS_table_folder,
-                             "BarDens_Final_%s_3D.dat" % filename_string))     # nB/T^3
-P_table  = loadtxt(path.join(EOS_table_folder,
-                             "Press_Final_%s_3D.dat" % filename_string))       # P/T^4
-CorrLength_table  = loadtxt(path.join(EOS_table_folder,
-                             "CorrLength_Final_%s_3D.dat" % filename_string))  # fm
-Cs2_table  = loadtxt(path.join(EOS_table_folder,
-                             "SpSound_Final_%s_3D.dat" % filename_string))
-Chi2_table  = loadtxt(path.join(EOS_table_folder,
-                              "Chi2_Final_%s_3D.dat" % filename_string))        # chi2/T^2
-'''
 
 ed_table = loadtxt(path.join(EOS_table_folder,
-                             "EnerDensLATonlyNorm3D.dat"))    # e/T^4
+                             "EnerDens.dat"))    # e/T^4
 nB_table = loadtxt(path.join(EOS_table_folder,
-                             "BarDensLATonlyNorm3D.dat"))     # nB/T^3
+                             "BarDens.dat"))     # nB/T^3
 P_table  = loadtxt(path.join(EOS_table_folder,
-                             "PressLATonlyNorm3D.dat"))       # P/T^4
+                             "Press.dat"))       # P/T^4
 CorrLength_table  = loadtxt(path.join(EOS_table_folder,
-                             "CorrLengthLATonlyNorm3D.dat"))  # fm
+                             "CorrLength.dat"))  # fm
 Cs2_table  = loadtxt(path.join(EOS_table_folder,
-                             "SpsoundLATonlyNorm3D.dat"))
+                             "Spsound.dat"))
 Chi2_table  = loadtxt(path.join(EOS_table_folder,
-                             "Chi2LATonlyNorm3D.dat"))        # chi2/T^2
-'''
+                             "Chi2.dat"))        # chi2/T^2
+
 
 
 n_muB = 601

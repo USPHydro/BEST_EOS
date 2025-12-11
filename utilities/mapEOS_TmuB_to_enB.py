@@ -25,21 +25,6 @@ filename_string = EOS_table_folder
 
 print(filename_string)
 
-'''
-ed_table = loadtxt(path.join(EOS_table_folder,
-                             "EnerDens_Final_%s_3D.dat" % filename_string))    # e/T^4
-nB_table = loadtxt(path.join(EOS_table_folder,
-                             "BarDens_Final_%s_3D.dat" % filename_string))     # nB/T^3
-P_table  = loadtxt(path.join(EOS_table_folder,
-                             "Press_Final_%s_3D.dat" % filename_string))       # P/T^4
-CorrLength_table  = loadtxt(path.join(EOS_table_folder,
-                             "CorrLength_Final_%s_3D.dat" % filename_string))  # fm
-Cs2_table  = loadtxt(path.join(EOS_table_folder,
-                             "SpSound_Final_%s_3D.dat" % filename_string))
-Chi2_table  = loadtxt(path.join(EOS_table_folder,
-                              "Chi2_Final_%s_3D.dat" % filename_string))        # chi2/T^2
-'''
-
 ed_table = loadtxt(path.join(EOS_table_folder,
                              "EnerDens.dat"))    # e/T^4
 nB_table = loadtxt(path.join(EOS_table_folder,
@@ -48,12 +33,10 @@ P_table  = loadtxt(path.join(EOS_table_folder,
                              "Press.dat"))       # P/T^4
 CorrLength_table  = loadtxt(path.join(EOS_table_folder,
                              "CorrLength.dat"))  # fm
-#CorrLength_table  = loadtxt("/storage/home/vfrancao/eos_with_critical_point/Files_PAR_143_350_3_93_143_286/CorrLength.dat")  # fm
 Cs2_table  = loadtxt(path.join(EOS_table_folder,
-                             "SpSound.dat"))
+                             "Cs2.dat"))
 Chi2_table  = loadtxt(path.join(EOS_table_folder,
                              "Chi2.dat"))        # chi2/T^2
-
 
 n_muB = 601
 n_T   = 771
@@ -217,19 +200,19 @@ for itable in range(len(ne_list)):
         chi2_list[ie, inB] = results[idx][7]
 
     # save to files
-    savetxt("BEST_eos_p_{0:d}.dat".format(itable), p_list,
+    savetxt(EOS_table_folder+"/BEST_eos_p_{0:d}.dat".format(itable), p_list,
             fmt='%.8e', delimiter="  ",
             header="%.8e %.8e %d %.8e %.8e %d"
                     % (ed_bounds[itable], de, ne_list[itable],
                     0.0, drhob, nnB_list[itable]),
             comments='')
-    savetxt("BEST_eos_T_{}.dat".format(itable), T_list,
+    savetxt(EOS_table_folder+"/BEST_eos_T_{}.dat".format(itable), T_list,
             fmt='%.8e', delimiter="  ")
-    savetxt("BEST_eos_muB_{}.dat".format(itable), muB_list,
+    savetxt(EOS_table_folder+"/BEST_eos_muB_{}.dat".format(itable), muB_list,
             fmt='%.8e', delimiter="  ")
-    savetxt("BEST_eos_cs2_{}.dat".format(itable), cs2_list,
+    savetxt(EOS_table_folder+"/BEST_eos_cs2_{}.dat".format(itable), cs2_list,
             fmt='%.8e', delimiter="  ")
-    savetxt("BEST_eos_corrLength_{}.dat".format(itable), corr_list,
+    savetxt(EOS_table_folder+"/BEST_eos_corrLength_{}.dat".format(itable), corr_list,
             fmt='%.8e', delimiter="  ")
-    savetxt("BEST_eos_chi2_{}.dat".format(itable), chi2_list,
+    savetxt(EOS_table_folder+"/BEST_eos_chi2_{}.dat".format(itable), chi2_list,
             fmt='%.8e', delimiter="  ")
