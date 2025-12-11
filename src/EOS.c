@@ -327,12 +327,12 @@ void do_lattice() /*{{{*/
 	fprintf(stderr,"Calculating thermodynamics quantities. \n");
 
 	// Create the files for export.
-	FILE *FilePressLATonlyNorm = fopen("PressLATonlyNorm3D.dat", "w");		
-	FILE *FileEntrLATonlyNorm = fopen("EntrLATonlyNorm3D.dat", "w");
-	FILE *FileBarDensLATonlyNorm = fopen("BarDensLATonlyNorm3D.dat", "w");	
-	FILE *FileEnerDensLATonlyNorm = fopen("EnerDensLATonlyNorm3D.dat", "w");
-	FILE *FileSpSoundLATonlyNorm = fopen("SpsoundLATonlyNorm3D.dat", "w");	
-	FILE *FileChi2LATonlyNorm = fopen("Chi2LATonlyNorm3D.dat", "w");
+	FILE *FilePressLATonlyNorm = fopen("Press.dat", "w");		
+	FILE *FileEntrLATonlyNorm = fopen("EntrDens.dat", "w");
+	FILE *FileBarDensLATonlyNorm = fopen("BarDens.dat", "w");	
+	FILE *FileEnerDensLATonlyNorm = fopen("EnerDens.dat", "w");
+	FILE *FileSpSoundLATonlyNorm = fopen("Cs2.dat", "w");	
+	FILE *FileChi2LATonlyNorm = fopen("Chi2.dat", "w");
 		
 	// Export.
 	for (i=lowT_out; i<=highT_out; i++) for(j=0;j<=highMU_out; j++){
@@ -428,13 +428,20 @@ void write_filenames() /*{{{*/
 	sprintf(named2PdT2TotHRG3D, "d2PdT2_Tot_HRG_%s_%d_%d_%d_%d_%d_%d_3D.dat",MODESTR,(int)TC,(int)muBC,(int)angle1,(int)angle2,(int) dTC,(int) dmuBC);
 	sprintf(named2PdmuB2TotHRG3D, "d2PdmuB2_Tot_HRG_%s_%d_%d_%d_%d_%d_%d_3D.dat",MODESTR,(int)TC,(int)muBC,(int)angle1,(int)angle2,(int) dTC,(int) dmuBC);
 	sprintf(named2PdTdmuBTotHRG3D, "d2PdTdmuB_Tot_HRG_%s_%d_%d_%d_%d_%d_%d_3D.dat",MODESTR,(int)TC,(int)muBC,(int)angle1,(int)angle2,(int) dTC,(int) dmuBC);
-	sprintf(namePressFinal3D, "Press_Final_%s_%d_%d_%d_%d_%d_%d_3D.dat",MODESTR,(int)TC,(int)muBC,(int)angle1,(int)angle2,(int) dTC,(int) dmuBC);
-	sprintf(nameEntrFinal3D, "Entr_Final_%s_%d_%d_%d_%d_%d_%d_3D.dat",MODESTR,(int)TC,(int)muBC,(int)angle1,(int)angle2,(int) dTC,(int) dmuBC);
-	sprintf(nameBarDensFinal3D, "BarDens_Final_%s_%d_%d_%d_%d_%d_%d_3D.dat",MODESTR,(int)TC,(int)muBC,(int)angle1,(int)angle2,(int) dTC,(int) dmuBC);
-	sprintf(nameEnerDensFinal3D, "EnerDens_Final_%s_%d_%d_%d_%d_%d_%d_3D.dat",MODESTR,(int)TC,(int)muBC,(int)angle1,(int)angle2,(int) dTC,(int) dmuBC);
-	sprintf(nameSpsoundFinal3D, "SpSound_Final_%s_%d_%d_%d_%d_%d_%d_3D.dat",MODESTR,(int)TC,(int)muBC,(int)angle1,(int)angle2,(int) dTC,(int) dmuBC);
-	sprintf(nameChi2Final3D, "Chi2_Final_%s_%d_%d_%d_%d_%d_%d_3D.dat",MODESTR,(int)TC,(int)muBC,(int)angle1,(int)angle2,(int) dTC,(int) dmuBC);
-	sprintf(nameCorrLengthFinal3D, "CorrLength_Final_%s_%d_%d_%d_%d_%d_%d_3D.dat",MODESTR,(int)TC,(int)muBC,(int)angle1,(int)angle2,(int) dTC,(int) dmuBC);
+	sprintf(namePressFinal3D, "Press.dat");
+	sprintf(nameEntrFinal3D, "EntrDens.dat");
+	sprintf(nameBarDensFinal3D, "BarDens.dat");
+	sprintf(nameEnerDensFinal3D, "EnerDens.dat");
+	sprintf(nameSpsoundFinal3D, "Cs2.dat");
+	sprintf(nameChi2Final3D, "Chi2.dat");
+	sprintf(nameCorrLengthFinal3D, "CorrLength.dat");
+	//sprintf(namePressFinal3D, "Press_Final_%s_%d_%d_%d_%d_%d_%d_3D.dat",MODESTR,(int)TC,(int)muBC,(int)angle1,(int)angle2,(int) dTC,(int) dmuBC);
+	//sprintf(nameEntrFinal3D, "Entr_Final_%s_%d_%d_%d_%d_%d_%d_3D.dat",MODESTR,(int)TC,(int)muBC,(int)angle1,(int)angle2,(int) dTC,(int) dmuBC);
+	//sprintf(nameBarDensFinal3D, "BarDens_Final_%s_%d_%d_%d_%d_%d_%d_3D.dat",MODESTR,(int)TC,(int)muBC,(int)angle1,(int)angle2,(int) dTC,(int) dmuBC);
+	//sprintf(nameEnerDensFinal3D, "EnerDens_Final_%s_%d_%d_%d_%d_%d_%d_3D.dat",MODESTR,(int)TC,(int)muBC,(int)angle1,(int)angle2,(int) dTC,(int) dmuBC);
+	//sprintf(nameSpsoundFinal3D, "SpSound_Final_%s_%d_%d_%d_%d_%d_%d_3D.dat",MODESTR,(int)TC,(int)muBC,(int)angle1,(int)angle2,(int) dTC,(int) dmuBC);
+	//sprintf(nameChi2Final3D, "Chi2_Final_%s_%d_%d_%d_%d_%d_%d_3D.dat",MODESTR,(int)TC,(int)muBC,(int)angle1,(int)angle2,(int) dTC,(int) dmuBC);
+	//sprintf(nameCorrLengthFinal3D, "CorrLength_Final_%s_%d_%d_%d_%d_%d_%d_3D.dat",MODESTR,(int)TC,(int)muBC,(int)angle1,(int)angle2,(int) dTC,(int) dmuBC);
 } /*}}}*/
 
 void calc_jacobian() /*{{{*/
