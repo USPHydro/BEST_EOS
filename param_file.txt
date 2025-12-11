@@ -1,0 +1,11 @@
+Lattice_chi=./input/Lattice_Data_5_821_dT1.dat
+Lattice_chi_SN=./input/Lattice_Data_5_821_dT1_SN.dat
+HRG_press=./input/Press_HRG_MUB000601_T005300_dT1.dat
+HRG_press_SN=./input/Press_HRG_MUB000601_T005300_dT1_SN.dat
+Mode=PAR
+T0=155
+kappa=-0.0149
+muBC=400
+anglediff=90
+ww=1
+rho=2
