@@ -7,3 +7,8 @@ Jamie Stafford, Department of Physics, University of Houston
 '''
 
 READ EoS.readme
+
+
+To invert the EOS tables from TmuB to enB you should type 
+
+python ./utilities/mapEOS_TmuB_to_enB.py [Folder with EOS Tables WITHOU / in the end]
