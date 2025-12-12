@@ -15,14 +15,16 @@ using std::isinf;
 using std::istringstream;
 using std::string;
 
+
+// LET THE CODE FOR PRAIA FORMAT
+
 #define hbarc 0.1973269631 // GeV*fm
 
 
 int main(int argc, char** argv){
 
-    string path = "neosB-v0.11";
+    string path = argv[1];
     //string string_tmp[] = {"1", "2", "3", "4", "5", "6", "7"};
-
     const int ntables = 7;
 
     //double  **p, **t, **u; //pressure, temperature and baryon potential
@@ -36,15 +38,15 @@ int main(int argc, char** argv){
 
 //        # e0= 3.60000000e-03 de= 1.93220339e-04 Ne= 60 rhob0= 0.00000000e+00 drhob0= 5.00000000e-05 Nrhob= 301 (only pressure archives)
 
-        std::ifstream eos_p("BEST_eos_p_" + std::to_string(itable)+".dat");
-        std::ifstream eos_t("BEST_eos_T_" + std::to_string(itable)+".dat");
-        std::ifstream eos_u("BEST_eos_muB_" + std::to_string(itable)+".dat");
-        std::ifstream eos_cs2("BEST_eos_cs2_" + std::to_string(itable)+".dat");
+        std::ifstream eos_p(path+"/BEST_eos_p_" + std::to_string(itable)+".dat");
+        std::ifstream eos_t(path+"/BEST_eos_T_" + std::to_string(itable)+".dat");
+        std::ifstream eos_u(path+"/BEST_eos_muB_" + std::to_string(itable)+".dat");
+        std::ifstream eos_cs2(path+"/BEST_eos_cs2_" + std::to_string(itable)+".dat");
         
-        string name = "EOS_"+std::to_string(itable+1)+".dat";
+        string name = path+"/"+"visuEOS_"+std::to_string(itable+1)+".dat";
         FILE *output_file1 = fopen(name.c_str(), "w");
 
-        name = "EOS_"+std::to_string(itable+1)+".dat";
+        name = path+"/"+"EOS_"+std::to_string(itable+1)+".dat";
         FILE *output_file2 = fopen(name.c_str(), "w");
     
 
@@ -67,8 +69,15 @@ int main(int argc, char** argv){
         eos_p >> dn;
         eos_p >> nn;
         
-
-        std::cout<<"emin= "<<emin<<" de= "<<de<<" ne= "<<ne<<" nmin= "<<nmin<<" dn= "<<dn<<" nn= "<<nn<<std::endl;
+        //nn++;
+        //ne++;
+std::cout<<"emin= "<<emin
+                 <<" emax= "<<emin + double(ne)*de
+                 <<" ne= "<<ne
+                 <<" nmin= "<<nmin
+                 <<" nmax= "<<nmin + double(nn)*dn
+                 <<" nn= "<<nn<<std::endl;
+        //std::cout<<"emin= "<<emin<<" de= "<<de<<" ne= "<<ne<<" nmin= "<<nmin<<" dn= "<<dn<<" nn= "<<nn<<std::endl;
 
         //cout<< emin << " \t " << de << " \t " << ne << " \t " << nmin << " \t " << dn << " \t " <<  nn << endl;
         fprintf(output_file2, "%d %g %g %d %g %g\n", ne, emin, emin + double(ne)*de, nn, nmin, nmin + double(nn)*dn);

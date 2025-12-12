@@ -1,13 +1,14 @@
-#/usr/bin/env python3
+#!/usr/bin/env python3
 # Copyright Chun Shen @ 2018
+# Updated to replace deprecated scipy.interpolate.interp2d with
+# scipy.interpolate.RegularGridInterpolator (SciPy >= 1.14)
 
 from numpy import *
 import sys
 from os import path
-from scipy import interpolate
+from scipy.interpolate import RegularGridInterpolator
 import matplotlib.pyplot as plt
 import multiprocessing as mp
-
 
 
 try:
@@ -56,12 +57,38 @@ print("e_min = %.5e GeV/fm^3, e_max = %.5e GeV/fm^3"
 print("nB_min = %.5e 1/fm^3, nB_max = %.5e 1/fm^3"
         % (matrix(nB_table).min(), matrix(nB_table).max()))
 
-f_p    = interpolate.interp2d(muB, T, P_table,  kind='cubic')
-f_e    = interpolate.interp2d(muB, T, ed_table, kind='cubic')
-f_nB   = interpolate.interp2d(muB, T, nB_table, kind='cubic')
-f_cs2  = interpolate.interp2d(muB, T, Cs2_table, kind='cubic')
-f_corr = interpolate.interp2d(muB, T, CorrLength_table, kind='cubic')
-f_chi2 = interpolate.interp2d(muB, T, Chi2_table, kind='cubic')
+# NOTE:
+# RegularGridInterpolator expects the `values` array shaped in the
+# same order as the grid tuple. We want the grid to be (muB, T) so
+# `values` must have shape (len(muB), len(T)). Current tables are
+# shaped (n_T, n_muB) -> (len(T), len(muB)) so we take the transpose.
+
+p_interp    = RegularGridInterpolator((muB, T), P_table.T,  method='linear', bounds_error=False, fill_value=None)
+e_interp    = RegularGridInterpolator((muB, T), ed_table.T, method='linear', bounds_error=False, fill_value=None)
+nB_interp   = RegularGridInterpolator((muB, T), nB_table.T, method='linear', bounds_error=False, fill_value=None)
+cs2_interp  = RegularGridInterpolator((muB, T), Cs2_table.T, method='linear', bounds_error=False, fill_value=None)
+corr_interp = RegularGridInterpolator((muB, T), CorrLength_table.T, method='linear', bounds_error=False, fill_value=None)
+chi2_interp = RegularGridInterpolator((muB, T), Chi2_table.T, method='linear', bounds_error=False, fill_value=None)
+
+# wrapper functions to mimic old interp2d call signature f(x,y)
+def f_p(muB_val, T_val):
+    return p_interp([[muB_val, T_val]])[0]
+
+def f_e(muB_val, T_val):
+    return e_interp([[muB_val, T_val]])[0]
+
+def f_nB(muB_val, T_val):
+    return nB_interp([[muB_val, T_val]])[0]
+
+def f_cs2(muB_val, T_val):
+    return cs2_interp([[muB_val, T_val]])[0]
+
+def f_corr(muB_val, T_val):
+    return corr_interp([[muB_val, T_val]])[0]
+
+def f_chi2(muB_val, T_val):
+    return chi2_interp([[muB_val, T_val]])[0]
+
 
 def binary_search_1d(ed_local, muB_local):
     iteration = 0
@@ -89,6 +116,7 @@ def binary_search_1d(ed_local, muB_local):
             rel_err = abs_err/abs(e_mid + ed_local + 1e-15)
             iteration += 1
         return(T_mid)
+
 
 def binary_search_2d(ed_local, nB_local):
     iteration = 0
@@ -129,6 +157,7 @@ ed_bounds = [0.0, 0.0036, 0.015, 0.045, 0.455, 20.355, 219.355, 2209.36]
 ne_list = [14, 21, 32, 43, 201, 201, 201]
 nB_bounds = [0.00499, 0.01495, 0.04475, 0.498, 3.49, 12.45, 39.8]
 nnB_list  = [501, 301, 181, 251, 351, 251, 201]
+
 
 '''
 ed_bounds = [0.0, 0.0036, 0.015, 0.045, 0.455, 20.355, 650.]
@@ -173,10 +202,10 @@ for itable in range(len(ne_list)):
 
         #T_local, muB_local = binary_search_2d(ed_local, nB_local)
 
-        P_local            = f_p(muB_local, T_local)[0]
-        cs2_local          = f_cs2(muB_local, T_local)[0]
-        corrL_local        = f_corr(muB_local, T_local)[0]
-        chi2_local         = f_chi2(muB_local, T_local)[0]
+        P_local            = f_p(muB_local, T_local)
+        cs2_local          = f_cs2(muB_local, T_local)
+        corrL_local        = f_corr(muB_local, T_local)
+        chi2_local         = f_chi2(muB_local, T_local)
         return(ie, inB, P_local, T_local, muB_local, cs2_local,
                corrL_local, chi2_local)
 
@@ -184,6 +213,8 @@ for itable in range(len(ne_list)):
     inputs  = range(len(ed_list)*len(nB_list))
     pool    = mp.Pool(processes=70)
     results = pool.map(invert_EOS_tables, inputs)
+    pool.close()
+    pool.join()
     #results = []
     #for idx_ in inputs:
     #    results.append(invert_EOS_tables(idx_))
