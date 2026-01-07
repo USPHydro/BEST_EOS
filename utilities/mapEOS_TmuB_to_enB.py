@@ -38,6 +38,8 @@ Cs2_table  = loadtxt(path.join(EOS_table_folder,
                              "Cs2.dat"))
 Chi2_table  = loadtxt(path.join(EOS_table_folder,
                              "Chi2.dat"))        # chi2/T^2
+s_table  = loadtxt(path.join(EOS_table_folder,
+                             "EntrDens.dat"))    # s/T^3
 
 n_muB = 601
 n_T   = 771
@@ -51,6 +53,9 @@ P_table  = P_table[:, 2].reshape(n_T, n_muB)*(T_table**4.)/(hbarC**3.)         #
 Cs2_table  = Cs2_table[:, 2].reshape(n_T, n_muB)
 CorrLength_table = CorrLength_table[:, 2].reshape(n_T, n_muB)
 Chi2_table = Chi2_table[:, 2].reshape(n_T, n_muB)*(T_table**2.)/(hbarC**3.)    # 1/(GeV*fm^3)
+s_table  = s_table[:, 2].reshape(n_T, n_muB)*(T_table**3.)/(hbarC**3.)  # 1/fm^3
+
+
 
 print("e_min = %.5e GeV/fm^3, e_max = %.5e GeV/fm^3"
         % (matrix(ed_table).min(), matrix(ed_table).max()))
@@ -69,6 +74,7 @@ nB_interp   = RegularGridInterpolator((muB, T), nB_table.T, method='linear', bou
 cs2_interp  = RegularGridInterpolator((muB, T), Cs2_table.T, method='linear', bounds_error=False, fill_value=None)
 corr_interp = RegularGridInterpolator((muB, T), CorrLength_table.T, method='linear', bounds_error=False, fill_value=None)
 chi2_interp = RegularGridInterpolator((muB, T), Chi2_table.T, method='linear', bounds_error=False, fill_value=None)
+s_interp    = RegularGridInterpolator((muB, T), s_table.T, method='linear', bounds_error=False, fill_value=None)
 
 # wrapper functions to mimic old interp2d call signature f(x,y)
 def f_p(muB_val, T_val):
@@ -88,6 +94,9 @@ def f_corr(muB_val, T_val):
 
 def f_chi2(muB_val, T_val):
     return chi2_interp([[muB_val, T_val]])[0]
+
+def f_s(muB_val, T_val):
+    return s_interp([[muB_val, T_val]])[0]
 
 
 def binary_search_1d(ed_local, muB_local):
@@ -184,6 +193,7 @@ for itable in range(len(ne_list)):
     cs2_list = zeros([len(ed_list), len(nB_list)])
     corr_list = zeros([len(ed_list), len(nB_list)])
     chi2_list = zeros([len(ed_list), len(nB_list)])
+    s_list   = zeros([len(ed_list), len(nB_list)])
 
     def invert_EOS_tables(idx):
         ie       = int(idx/len(nB_list))
@@ -191,23 +201,19 @@ for itable in range(len(ne_list)):
         ed_local = ed_list[ie]
         nB_local = nB_list[inB]
         T_local, muB_local = binary_search_2d(ed_local, nB_local)
-
         
-
-
         #edd           = f_e(T_local, muB_local)[0]
         #nbb           = f_nB(T_local, muB_local)[0]
-
-        
-
         #T_local, muB_local = binary_search_2d(ed_local, nB_local)
 
         P_local            = f_p(muB_local, T_local)
         cs2_local          = f_cs2(muB_local, T_local)
         corrL_local        = f_corr(muB_local, T_local)
         chi2_local         = f_chi2(muB_local, T_local)
-        return(ie, inB, P_local, T_local, muB_local, cs2_local,
-               corrL_local, chi2_local)
+        s_local     = f_s(muB_local, T_local)
+        
+        return(ie, inB, P_local, T_local, muB_local,
+            cs2_local, corrL_local, chi2_local, s_local)
 
     # calculate every points in parallel
     inputs  = range(len(ed_list)*len(nB_list))
@@ -229,6 +235,7 @@ for itable in range(len(ne_list)):
         cs2_list[ie, inB] = results[idx][5]
         corr_list[ie, inB] = results[idx][6]
         chi2_list[ie, inB] = results[idx][7]
+        s_list[ie, inB]    = results[idx][8]
 
     # save to files
     savetxt(EOS_table_folder+"/BEST_eos_p_{0:d}.dat".format(itable), p_list,
@@ -247,3 +254,5 @@ for itable in range(len(ne_list)):
             fmt='%.8e', delimiter="  ")
     savetxt(EOS_table_folder+"/BEST_eos_chi2_{}.dat".format(itable), chi2_list,
             fmt='%.8e', delimiter="  ")
+    savetxt(EOS_table_folder+"/BEST_eos_s_{}.dat".format(itable), s_list,
+        fmt='%.8e', delimiter="  ")

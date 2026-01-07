@@ -41,6 +41,7 @@ int main(int argc, char** argv){
         std::ifstream eos_p(path+"/BEST_eos_p_" + std::to_string(itable)+".dat");
         std::ifstream eos_t(path+"/BEST_eos_T_" + std::to_string(itable)+".dat");
         std::ifstream eos_u(path+"/BEST_eos_muB_" + std::to_string(itable)+".dat");
+        std::ifstream eos_s(path+"/BEST_eos_s_" + std::to_string(itable)+".dat");
         std::ifstream eos_cs2(path+"/BEST_eos_cs2_" + std::to_string(itable)+".dat");
         
         string name = path+"/"+"visuEOS_"+std::to_string(itable+1)+".dat";
@@ -55,7 +56,7 @@ int main(int argc, char** argv){
         //istringstream iss(line);
         //iss >> emin >> de >> ne >> nmin >> dn >> nn;
 
-        double p, t, u, e, n, cs2;
+        double p, t, u, e, n, cs2, s;
         double nmin, emin, dn, de;
         int nn, ne;
         string line;
@@ -71,7 +72,7 @@ int main(int argc, char** argv){
         
         //nn++;
         //ne++;
-std::cout<<"emin= "<<emin
+    std::cout<<"emin= "<<emin
                  <<" emax= "<<emin + double(ne)*de
                  <<" ne= "<<ne
                  <<" nmin= "<<nmin
@@ -95,8 +96,11 @@ std::cout<<"emin= "<<emin
                 eos_t >> t;
                 eos_u >> u;
                 eos_cs2 >> cs2;
+                eos_s >> s;
 
-                double s =(e+p-u*n)/t;
+//                double ss =(e+p-u*n)/t;
+
+//                std::cout<<s<<std::endl;
 
                 if(t == 0.) fprintf(output_file2, "%g %g %g %g %g\n", t, u, 0., 0., 0.);
                 else fprintf(output_file2, "%g %g %g %g %g\n", t, u, s, p, cs2);
