@@ -39,6 +39,8 @@ int verbose=0;
 int print=0;
 int strange=0;
 int lattice=0;
+int lattice_filter=0;
+int lattice_hrg_merge=0;
 char lat_data[FILENAME_MAX];
 char lat_data_SN[FILENAME_MAX];
 char HRG_press[FILENAME_MAX];
@@ -80,6 +82,8 @@ void help() /*{{{*/
   puts("        -r<lowT>:<highT>    Change T-range (still within limits)");
   puts("        -R<lowMU>:<highMU>  Change mu-range (still within limits)");
   puts("        -L                  Lattice mode: produce EoS without CP");
+  puts("        -F                  Smooth lattice-only pressure with Gaussian filter");
+  puts("        -H                  Merge lattice-only pressure with HRG");
   puts("        -S                  Consider the strangeness neutral case");
   puts("        -p                  Output data for intermediate steps too");
   puts("        -v                  Verbose, print more stuff");
@@ -293,8 +297,16 @@ void do_lattice() /*{{{*/
   /* Creating directory and moving into it. */
 	char LATdir[FILENAME_MAX];
 	
-	if (!strange) strcpy(LATdir,"LATonly"); 
-	else strcpy(LATdir,"LATonly_SN");
+	if (lattice_hrg_merge) {
+		int transition_temperature = (int)(T0 + 0.5);
+		if (!lattice_filter) sprintf(LATdir,"CROSSOVER_T%d", transition_temperature);
+		else sprintf(LATdir,"CROSSOVER_smooth_T%d", transition_temperature);
+		if (strange) strcat(LATdir,"_SN");
+	}
+	else if (!strange && !lattice_filter) strcpy(LATdir,"LATonly");
+	else if (!strange && lattice_filter) strcpy(LATdir,"LATonly_smooth");
+	else if (strange && !lattice_filter) strcpy(LATdir,"LATonly_SN");
+	else strcpy(LATdir,"LATonly_smooth_SN");
 	
 	mkdir(LATdir, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 	chdir(LATdir);
@@ -303,26 +315,175 @@ void do_lattice() /*{{{*/
 	for (i=lowT;i<=highT; i++) for(j=0; j<=highMU; j++){
 		muBval = (double) j; 	
 		Tval = (double) i;
-  	PressLATonlyMat[i][j] = Chi0LatVec[i] 
-														+ 1.0/2.0*Chi2LatVec[i]*pow(muBval/Tval,2) 
+		PressLATonlyMat[i][j] = Chi0LatVec[i]
+														+ 1.0/2.0*Chi2LatVec[i]*pow(muBval/Tval,2)
 														+ 1.0/24.0*Chi4LatVec[i]*pow(muBval/Tval,4);
+	}
+
+	if (lattice_filter){
+		fprintf(stderr,"Filtering lattice-only Pressure in 3D\n");
+
+		sigmax = 18.0; sigmay = 1.0;
+
+		for (i=lowT; i<=highT; i++) for(j=0; j<=highMU; j++){
+			kmin = i-sigmax; kmax = i+sigmax;
+			lmin = j-sigmay; lmax = j+sigmay;
+
+			sum = 0.0; norm = 0.0;
+			for(k=kmin;k<=kmax;k++) for(l=lmin;l<=lmax;l++){
+				if(k<=lowT)		kint = lowT;
+				else if(k>=highT)	kint = highT;
+				else			kint = k;
+
+				if(l<=0)		lint = -l;
+				else if(l>=highMU)	lint = highMU;
+				else			lint = l;
+
+				sum+=GausFunc(kint-i,lint-j,sigmax,sigmay)*PressLATonlyMat[kint][lint];
+				norm+=GausFunc(kint-i,lint-j,sigmax,sigmay);
+			}
+			PressLATonlyFilterMat[i][j] = sum/norm;
+		}
+	}
+	else{
+		for (i=lowT; i<=highT; i++) for(j=0; j<=highMU; j++)
+			PressLATonlyFilterMat[i][j] = PressLATonlyMat[i][j];
 	}
 
 	// Take all the needed derivatives of the pressure.
 	// Wrt T
-	deriv_matrix(PressLATonlyMat,dPressLATonlydTMat,
-								1,lowT,highT,0,highMU,0);	
+	deriv_matrix(PressLATonlyFilterMat,dPressLATonlydTMat,
+								1,lowT,highT,0,highMU,0);
 	deriv_matrix(dPressLATonlydTMat,d2PressLATonlydT2Mat,
 								1,lowT,highT,0,highMU,0);
 	// Wrt muB
-	deriv_matrix(PressLATonlyMat,dPressLATonlydmuBMat,
+	deriv_matrix(PressLATonlyFilterMat,dPressLATonlydmuBMat,
 								2,lowT,highT,0,highMU,0);
 	deriv_matrix(dPressLATonlydmuBMat,d2PressLATonlydmuB2Mat,
 								2,lowT,highT,0,highMU,1);
 	// Wrt T and muB
 	deriv_matrix(dPressLATonlydTMat,d2PressLATonlydTdmuBMat,
 								2,lowT,highT,0,highMU,0);
-	
+
+	if (lattice_hrg_merge){
+		fprintf(stderr,"Importing HRG Pressure for lattice-only merge\n");
+
+		FILE * FilePressHRG;
+
+		if (!strange) FilePressHRG=fopen(HRG_press,"r");
+		else FilePressHRG=fopen(HRG_press_SN,"r");
+
+		if (FilePressHRG==NULL) err(1, "Failed to open HRG Pressure.\n");
+
+		for(i=0, x2int=0;fscanf(FilePressHRG,"%lf %lf %lf\n",&xIn1,&xIn2,&xIn3) !=EOF;i++){
+			x1int = (i % 817) + 5;
+			PressHRGMat[x1int][x2int] = xIn3*pow(x1int,4);
+			if(x1int == 821) x2int++;
+		}
+		fclose(FilePressHRG);
+
+		deriv_matrix(PressHRGMat,dPressHRGdTMat,1,lowT,highT,0,highMU,0);
+		deriv_matrix(dPressHRGdTMat,d2PressHRGdT2Mat,1,lowT,highT,0,highMU,0);
+		deriv_matrix(PressHRGMat,dPressHRGdmuBMat,2,lowT,highT,0,highMU,0);
+		deriv_matrix(dPressHRGdmuBMat,d2PressHRGdmuB2Mat,2,lowT,highT,0,highMU,1);
+		deriv_matrix(dPressHRGdTMat,d2PressHRGdTdmuBMat,2,lowT,highT,0,highMU,0);
+
+		fprintf(stderr,"Merging lattice-only pressure with HRG data.\n");
+
+		deltaT = 17.0;
+
+		for (i=lowT; i<=highT; i++) for(j=0;j<=highMU; j++){
+			Tval = (double) i; muBval = (double) j;
+			Targum = (Tval - (T0 + kappa/T0*muBval*muBval - 23.0))/deltaT;
+
+			if (Targum>=4.5)
+				PressTotHRGMat[i][j] = PressLATonlyFilterMat[i][j];
+			else if (Targum<=-4.5)
+				PressTotHRGMat[i][j] = PressHRGMat[i][j];
+			else
+				PressTotHRGMat[i][j] = PressLATonlyFilterMat[i][j]*0.5*(1.0 + tanh(Targum))
+																+ PressHRGMat[i][j]*0.5*(1.0 - tanh(Targum));
+
+			if(Targum >= 4.5)
+				dPressTotHRGdTMat[i][j] = dPressLATonlydTMat[i][j];
+			else if(Targum <= -4.5)
+				dPressTotHRGdTMat[i][j] = dPressHRGdTMat[i][j];
+			else
+				dPressTotHRGdTMat[i][j] = dPressLATonlydTMat[i][j]*0.5*(1.0 + tanh(Targum))
+													+ dPressHRGdTMat[i][j]*0.5*(1.0 - tanh(Targum))
+													+ PressLATonlyFilterMat[i][j]*0.5/deltaT*pow(cosh(Targum),-2)
+													- PressHRGMat[i][j]*0.5/deltaT*pow(cosh(Targum),-2);
+			if(Targum >= 4.5)
+				dPressTotHRGdmuBMat[i][j] = dPressLATonlydmuBMat[i][j];
+			else if(Targum <= -4.5)
+				dPressTotHRGdmuBMat[i][j] = dPressHRGdmuBMat[i][j];
+			else
+				dPressTotHRGdmuBMat[i][j] =
+					dPressLATonlydmuBMat[i][j]*0.5*(1.0 + tanh(Targum))
+					+ dPressHRGdmuBMat[i][j]*0.5*(1.0 - tanh(Targum))
+					- PressLATonlyFilterMat[i][j]*0.5*pow(cosh(Targum),-2)*(2*kappa/T0*muBval)/deltaT
+					+ PressHRGMat[i][j]*0.5*pow(cosh(Targum),-2)*(2*kappa/T0*muBval)/deltaT;
+
+			if(Targum >= 4.5)
+				d2PressTotHRGdT2Mat[i][j] = d2PressLATonlydT2Mat[i][j];
+			if(Targum <= -4.5)
+				d2PressTotHRGdT2Mat[i][j] = d2PressHRGdT2Mat[i][j];
+			else
+				d2PressTotHRGdT2Mat[i][j] =
+					d2PressLATonlydT2Mat[i][j]*0.5*(1.0 + tanh(Targum))
+					+ d2PressHRGdT2Mat[i][j]*0.5*(1.0 - tanh(Targum))
+					+ dPressLATonlydTMat[i][j]/deltaT*pow(cosh(Targum),-2)
+					- dPressHRGdTMat[i][j]/deltaT*pow(cosh(Targum),-2)
+					- PressLATonlyFilterMat[i][j]*pow(cosh(Targum),-2)*tanh(Targum)/pow(deltaT,2)
+					+ PressHRGMat[i][j]*pow(cosh(Targum),-2)*tanh(Targum)/pow(deltaT,2);
+
+			if(Targum >= 4.5)
+				d2PressTotHRGdmuB2Mat[i][j] = d2PressLATonlydmuB2Mat[i][j];
+			if(Targum <= -4.5)
+				d2PressTotHRGdmuB2Mat[i][j] = d2PressHRGdmuB2Mat[i][j];
+			else
+				d2PressTotHRGdmuB2Mat[i][j] =
+					d2PressLATonlydmuB2Mat[i][j]*0.5*(1.0 + tanh(Targum))
+					+ d2PressHRGdmuB2Mat[i][j]*0.5*(1.0 - tanh(Targum))
+					- dPressLATonlydmuBMat[i][j]*pow(cosh(Targum),-2)*(2*kappa/T0*muBval)/deltaT
+					+ dPressHRGdmuBMat[i][j]*pow(cosh(Targum),-2)*(2*kappa/T0*muBval)/deltaT
+					- PressLATonlyFilterMat[i][j]*0.5*pow(cosh(Targum),-2)
+						*(2*tanh(Targum)*(2*kappa/T0*muBval)/deltaT*(2*kappa/T0*muBval)/deltaT
+							+ 2*kappa/T0/deltaT)
+					+ PressHRGMat[i][j]*0.5*pow(cosh(Targum),-2)
+						*(2*tanh(Targum)*(2*kappa/T0*muBval)/deltaT*(2*kappa/T0*muBval)/deltaT
+							+ 2*kappa/T0/deltaT);
+
+			if(Targum >= 4.5)
+				d2PressTotHRGdTdmuBMat[i][j] = d2PressLATonlydTdmuBMat[i][j];
+			if(Targum <= -4.5)
+				d2PressTotHRGdTdmuBMat[i][j] = d2PressHRGdTdmuBMat[i][j];
+			else
+				d2PressTotHRGdTdmuBMat[i][j] =
+					d2PressLATonlydTdmuBMat[i][j]*0.5*(1.0 + tanh(Targum))
+					+ d2PressHRGdTdmuBMat[i][j]*0.5*(1.0 - tanh(Targum))
+					+ dPressLATonlydmuBMat[i][j]*0.5/deltaT*pow(cosh(Targum),-2)
+					- dPressHRGdmuBMat[i][j]*0.5/deltaT*pow(cosh(Targum),-2)
+					- dPressLATonlydTMat[i][j]*0.5/deltaT
+						*(2*kappa/T0*muBval)*pow(cosh(Targum),-2)
+					+ dPressHRGdTMat[i][j]*0.5/deltaT
+						*(2*kappa/T0*muBval)*pow(cosh(Targum),-2)
+					+ PressLATonlyFilterMat[i][j]*pow(cosh(Targum),-2)/pow(deltaT,2)
+						*tanh(Targum)*(2*kappa/T0*muBval)
+					- PressHRGMat[i][j]*pow(cosh(Targum),-2)/pow(deltaT,2)
+						*tanh(Targum)*(2*kappa/T0*muBval);
+		}
+
+		for (i=lowT; i<=highT; i++) for(j=0;j<=highMU; j++){
+			PressLATonlyFilterMat[i][j] = PressTotHRGMat[i][j];
+			dPressLATonlydTMat[i][j] = dPressTotHRGdTMat[i][j];
+			dPressLATonlydmuBMat[i][j] = dPressTotHRGdmuBMat[i][j];
+			d2PressLATonlydT2Mat[i][j] = d2PressTotHRGdT2Mat[i][j];
+			d2PressLATonlydmuB2Mat[i][j] = d2PressTotHRGdmuB2Mat[i][j];
+			d2PressLATonlydTdmuBMat[i][j] = d2PressTotHRGdTdmuBMat[i][j];
+		}
+	}
+		
 	// That is it. Now we just need to combine these into the final observables (normalized).
 	fprintf(stderr,"Calculating thermodynamics quantities. \n");
 
@@ -339,11 +500,11 @@ void do_lattice() /*{{{*/
 	for (i=lowT_out; i<=highT_out; i++) for(j=0;j<=highMU_out; j++){
 		Tval = (double) i; muBval = (double) j;
 		
-		PressLATonlyNormMat[i][j] = PressLATonlyMat[i][j]/pow(Tval,4);
+		PressLATonlyNormMat[i][j] = PressLATonlyFilterMat[i][j]/pow(Tval,4);
  		EntropyLATonlyNormMat[i][j] = dPressLATonlydTMat[i][j]/pow(Tval,3);
   	BarDensityLATonlyNormMat[i][j] = dPressLATonlydmuBMat[i][j]/pow(Tval,3);
   	EnerDensityLATonlyNormMat[i][j] = 
-			(dPressLATonlydTMat[i][j]*Tval-PressLATonlyMat[i][j]
+			(dPressLATonlydTMat[i][j]*Tval-PressLATonlyFilterMat[i][j]
 			 +muBval*dPressLATonlydmuBMat[i][j])/pow(Tval,4);
   	SpSoundLATonlyNormMat[i][j] = 
 			(dPressLATonlydmuBMat[i][j]*dPressLATonlydmuBMat[i][j]
@@ -1114,12 +1275,14 @@ void free_alloc() /*{{{*/
 int get_options(int argc, char *argv[]) /*{{{*/
 {	
 	int o;
-	while ((o=getopt(argc, argv, "r:R:vpLSh")) != -1) {
+	while ((o=getopt(argc, argv, "r:R:vpLFHSh")) != -1) {
 		switch (o) {
 			case 'v': verbose++; break;
 			case 'p': print++; break;
 			case 'S': strange++; break;
 			case 'L': lattice++; break;
+			case 'F': lattice_filter++; break;
+			case 'H': lattice_hrg_merge++; break;
 			case 'r': sscanf(optarg,"%d%*[:,-]%d",&lowT_out,&highT_out); break;
 			case 'R': sscanf(optarg,"%d%*[:,-]%d",&lowMU_out,&highMU_out); break;
 			case 'h': help(); exit(EXIT_FAILURE);

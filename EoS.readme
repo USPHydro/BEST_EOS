@@ -107,7 +107,14 @@ THE OPTIONS
  -R<lowMU>:<highMU>  Change mu-range within muB = 0 - 600 MeV
  -L                  Lattice mode: in this case the equation
                      of state is produced without a critical point,
-                     and the files copied in directory "LATonly"
+                     and the files are copied in directory "LATonly"
+ -F                  Apply a Gaussian smoothing filter to the lattice-only
+                     pressure before taking numerical derivatives. This option
+                     is used only together with -L.
+ -H                  In lattice mode, merge the lattice-only pressure and its
+                     derivatives with the HRG pressure through the same smooth
+                     hyperbolic tangent prescription used in the full EoS.
+                     This option is used only together with -L.
  -S                  Consider the strangeness neutral case. In this case
                      the directory created in "output" has "SN" appended
                      to its name
@@ -115,6 +122,34 @@ THE OPTIONS
  -v                  Verbose, prints messages regarding the stage of 
 										 running reached
  -h                  Print help
+
+LATTICE-ONLY OUTPUT DIRECTORIES
+###                                                            ###
+### Local additions for lattice-only tables without CP.        ###
+###                                                            ###
+When -L is used without HRG matching, the output directory is:
+ LATonly              for the plain lattice Taylor-expanded EoS
+ LATonly_smooth       when -F is also used
+ LATonly_SN           when -S is also used
+ LATonly_smooth_SN    when both -F and -S are used
+
+When -L and -H are used together, the lattice-only EoS is smoothly matched
+to the HRG pressure. The matching line follows
+
+ T_match(muB) = T0 + kappa/T0 * muB^2 - 23 MeV,
+
+with a smooth width DeltaT = 17 MeV, as in the original HRG matching
+prescription. In this case the directory name is changed from LATonly to
+CROSSOVER and includes the transition temperature T0 at muB = 0:
+
+ CROSSOVER_T<T0>           for HRG-matched lattice-only tables
+ CROSSOVER_smooth_T<T0>    when -F is also used
+ CROSSOVER_T<T0>_SN        when -S is also used
+ CROSSOVER_smooth_T<T0>_SN when -F and -S are both used
+
+Here <T0> is the transition temperature at muB = 0, rounded to the nearest
+integer. For example, T0 = 155 MeV produces CROSSOVER_T155 or
+CROSSOVER_smooth_T155.
 
 
 THE PARAMETER FILE

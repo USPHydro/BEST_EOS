@@ -23,8 +23,12 @@ using std::string;
 
 int main(int argc, char** argv){
 
+    if (argc < 2) {
+        std::cerr << "Usage: " << argv[0] << " EOS_table_folder" << endl;
+        return 1;
+    }
+
     string path = argv[1];
-    //string string_tmp[] = {"1", "2", "3", "4", "5", "6", "7"};
     const int ntables = 7;
 
     //double  **p, **t, **u; //pressure, temperature and baryon potential
@@ -32,7 +36,7 @@ int main(int argc, char** argv){
 
 
 
-    for(int itable = 0; itable <= 6; ++itable){
+    for(int itable = 0; itable < ntables; ++itable){
 
         cout<<"Table "<<itable+1<<endl;
 
@@ -43,12 +47,25 @@ int main(int argc, char** argv){
         std::ifstream eos_u(path+"/BEST_eos_muB_" + std::to_string(itable)+".dat");
         std::ifstream eos_s(path+"/BEST_eos_s_" + std::to_string(itable)+".dat");
         std::ifstream eos_cs2(path+"/BEST_eos_cs2_" + std::to_string(itable)+".dat");
+        std::ifstream eos_valid(path+"/BEST_eos_valid_" + std::to_string(itable)+".dat");
+
+        if (!eos_p || !eos_t || !eos_u || !eos_s || !eos_cs2) {
+            std::cerr << "Failed to open one or more BEST_eos files for table "
+                      << itable << " in " << path << endl;
+            return 1;
+        }
+        const bool has_valid = eos_valid.good();
         
         string name = path+"/"+"visuEOS_"+std::to_string(itable+1)+".dat";
         FILE *output_file1 = fopen(name.c_str(), "w");
 
         name = path+"/"+"EOS_"+std::to_string(itable+1)+".dat";
         FILE *output_file2 = fopen(name.c_str(), "w");
+
+        if (output_file1 == NULL || output_file2 == NULL) {
+            std::cerr << "Failed to open output files in " << path << endl;
+            return 1;
+        }
     
 
         // Get the minimum values of rhob and e
@@ -56,12 +73,10 @@ int main(int argc, char** argv){
         //istringstream iss(line);
         //iss >> emin >> de >> ne >> nmin >> dn >> nn;
 
-        double p, t, u, e, n, cs2, s;
+        double p, t, u, e, n, cs2, s, valid;
         double nmin, emin, dn, de;
         int nn, ne;
         string line;
-
-        double dummy;
 
         eos_p >> emin;
         eos_p >> de;
@@ -69,19 +84,28 @@ int main(int argc, char** argv){
         eos_p >> nmin;
         eos_p >> dn;
         eos_p >> nn;
+
+        if (!eos_p || ne <= 0 || nn <= 0 || de <= 0.0 || dn <= 0.0) {
+            std::cerr << "Invalid pressure table header for table "
+                      << itable << endl;
+            return 1;
+        }
         
         //nn++;
         //ne++;
+        const double emax = emin + double(ne)*de;
+        const double nmax = nmin + double(nn)*dn;
+
     std::cout<<"emin= "<<emin
-                 <<" emax= "<<emin + double(ne)*de
-                 <<" ne= "<<ne
-                 <<" nmin= "<<nmin
-                 <<" nmax= "<<nmin + double(nn)*dn
-                 <<" nn= "<<nn<<std::endl;
+	                 <<" emax= "<<emax
+	                 <<" ne= "<<ne
+	                 <<" nmin= "<<nmin
+	                 <<" nmax= "<<nmax
+	                 <<" nn= "<<nn<<std::endl;
         //std::cout<<"emin= "<<emin<<" de= "<<de<<" ne= "<<ne<<" nmin= "<<nmin<<" dn= "<<dn<<" nn= "<<nn<<std::endl;
 
         //cout<< emin << " \t " << de << " \t " << ne << " \t " << nmin << " \t " << dn << " \t " <<  nn << endl;
-        fprintf(output_file2, "%d %g %g %d %g %g\n", ne, emin, emin + double(ne)*de, nn, nmin, nmin + double(nn)*dn);
+        fprintf(output_file2, "%d %g %g %d %g %g\n", ne, emin, emax, nn, nmin, nmax);
 
         //fprintf(output_file1, "%g %g\n", nmin + dn*double(nn -1), emin + de*double(ne -1));
         for (int j = 0; j < ne; j++) {
@@ -97,16 +121,37 @@ int main(int argc, char** argv){
                 eos_u >> u;
                 eos_cs2 >> cs2;
                 eos_s >> s;
+                valid = 1.0;
+                if (has_valid) eos_valid >> valid;
+
+                if (!eos_p || !eos_t || !eos_u || !eos_cs2 || !eos_s
+                    || (has_valid && !eos_valid)) {
+                    std::cerr << "Unexpected end or parse error in table "
+                              << itable << " at e-index " << j
+                              << ", nB-index " << i << endl;
+                    fclose(output_file1);
+                    fclose(output_file2);
+                    return 1;
+                }
+
+                if (!std::isfinite(t)) t = 0.0;
+                if (!std::isfinite(u)) u = 0.0;
+                if (!std::isfinite(s) || s < 0.0) s = 0.0;
+                if (!std::isfinite(p) || p < 0.0) p = 0.0;
+                if (!std::isfinite(cs2)) cs2 = 0.0;
+                if (cs2 < 0.0) cs2 = 0.0;
+                if (cs2 > 1.0) cs2 = 1.0;
+                if (!std::isfinite(valid)) valid = 0.0;
 
 //                double ss =(e+p-u*n)/t;
 
 //                std::cout<<s<<std::endl;
 
-                if(t == 0.) fprintf(output_file2, "%g %g %g %g %g\n", t, u, 0., 0., 0.);
+                if(t == 0.) fprintf(output_file2, "%g %g %g %g %g \n", t, u, 0., 0., 0.);
                 else fprintf(output_file2, "%g %g %g %g %g\n", t, u, s, p, cs2);
 
-                if(t == 0.) fprintf(output_file1, "%g %g %g %g %g %g %g\n", t, u, 0., 0., 0., 0., 0.);
-                else fprintf(output_file1, "%g %g %g %g %g %g %g\n", t, u, e, n, s, p, cs2);
+                if(t == 0.) fprintf(output_file1, "%g %g %g %g %g %g %g %g\n", t, u, 0., 0., 0., 0., 0., valid);
+                else fprintf(output_file1, "%g %g %g %g %g %g %g %g\n", t, u, e, n, s, p, cs2, valid);
                 
                 //if(!isnan(s) && !isinf(s)) fprintf(output_file1, "%g %g\n", n, s);
             }
@@ -256,6 +301,3 @@ int main(int argc, char** argv){
         }
     }
 }*/
-
-
-
