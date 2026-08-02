@@ -2,3 +2,11 @@ CROSSOVER*/
 Files_PAR*/
 LATonly*/
 EoS
+
+# Locally built utilities and diagnostic plots
+/utilities/sample
+/utilities/xi_original_vs_inverted.pdf
+/utilities/xi_original_vs_inverted.png
+
+# Optional local HRG input tables
+/input/Press_HRG_SMASH_*.dat

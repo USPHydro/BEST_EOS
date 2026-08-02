@@ -47,9 +47,11 @@ int main(int argc, char** argv){
         std::ifstream eos_u(path+"/BEST_eos_muB_" + std::to_string(itable)+".dat");
         std::ifstream eos_s(path+"/BEST_eos_s_" + std::to_string(itable)+".dat");
         std::ifstream eos_cs2(path+"/BEST_eos_cs2_" + std::to_string(itable)+".dat");
+        std::ifstream eos_corrLength(path+"/BEST_eos_corrLength_" + std::to_string(itable)+".dat");
         std::ifstream eos_valid(path+"/BEST_eos_valid_" + std::to_string(itable)+".dat");
 
-        if (!eos_p || !eos_t || !eos_u || !eos_s || !eos_cs2) {
+        if (!eos_p || !eos_t || !eos_u || !eos_s || !eos_cs2
+            || !eos_corrLength) {
             std::cerr << "Failed to open one or more BEST_eos files for table "
                       << itable << " in " << path << endl;
             return 1;
@@ -73,7 +75,7 @@ int main(int argc, char** argv){
         //istringstream iss(line);
         //iss >> emin >> de >> ne >> nmin >> dn >> nn;
 
-        double p, t, u, e, n, cs2, s, valid;
+        double p, t, u, e, n, cs2, corrLength, s, valid;
         double nmin, emin, dn, de;
         int nn, ne;
         string line;
@@ -120,11 +122,13 @@ int main(int argc, char** argv){
                 eos_t >> t;
                 eos_u >> u;
                 eos_cs2 >> cs2;
+                eos_corrLength >> corrLength;
                 eos_s >> s;
                 valid = 1.0;
                 if (has_valid) eos_valid >> valid;
 
-                if (!eos_p || !eos_t || !eos_u || !eos_cs2 || !eos_s
+                if (!eos_p || !eos_t || !eos_u || !eos_cs2
+                    || !eos_corrLength || !eos_s
                     || (has_valid && !eos_valid)) {
                     std::cerr << "Unexpected end or parse error in table "
                               << itable << " at e-index " << j
@@ -141,17 +145,18 @@ int main(int argc, char** argv){
                 if (!std::isfinite(cs2)) cs2 = 0.0;
                 if (cs2 < 0.0) cs2 = 0.0;
                 if (cs2 > 1.0) cs2 = 1.0;
+                if (!std::isfinite(corrLength)) corrLength = 0.0;
                 if (!std::isfinite(valid)) valid = 0.0;
 
 //                double ss =(e+p-u*n)/t;
 
 //                std::cout<<s<<std::endl;
 
-                if(t == 0.) fprintf(output_file2, "%g %g %g %g %g \n", t, u, 0., 0., 0.);
-                else fprintf(output_file2, "%g %g %g %g %g\n", t, u, s, p, cs2);
+                if(t == 0.) fprintf(output_file2, "%g %g %g %g %g %g\n", t, u, 0., 0., 0., 0.);
+                else fprintf(output_file2, "%g %g %g %g %g %g\n", t, u, s, p, cs2, corrLength);
 
-                if(t == 0.) fprintf(output_file1, "%g %g %g %g %g %g %g %g\n", t, u, 0., 0., 0., 0., 0., valid);
-                else fprintf(output_file1, "%g %g %g %g %g %g %g %g\n", t, u, e, n, s, p, cs2, valid);
+                if(t == 0.) fprintf(output_file1, "%g %g %g %g %g %g %g %g %g\n", t, u, 0., 0., 0., 0., 0., 0., valid);
+                else fprintf(output_file1, "%g %g %g %g %g %g %g %g %g\n", t, u, e, n, s, p, cs2, corrLength, valid);
                 
                 //if(!isnan(s) && !isinf(s)) fprintf(output_file1, "%g %g\n", n, s);
             }
@@ -162,6 +167,7 @@ int main(int argc, char** argv){
         eos_t.close();
         eos_u.close();
         eos_cs2.close();
+        eos_corrLength.close();
         
         fclose(output_file1);
         fclose(output_file2);
